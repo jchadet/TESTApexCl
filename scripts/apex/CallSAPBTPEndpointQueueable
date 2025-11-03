@@ -1,0 +1,166 @@
+public class CallSAPBTPEndpointQueueable implements Queueable, Database.AllowsCallouts {
+    private Id recordId;
+    
+    public CallSAPBTPEndpointQueueable(Id recordId) {
+        this.recordId = recordId;
+    }
+    
+    public void execute(QueueableContext context) {
+        try {
+            // Fetch integration settings from Custom Metadata
+            SAP_IntegrationSettings__mdt settings = [
+                SELECT Endpoint__c, Username__c, Password__c
+                FROM SAP_IntegrationSettings__mdt
+                LIMIT 1
+            ];
+            // **Étape 1 : Récupérer dynamiquement tous les champs de Document_Contractuel__c**
+            Map<String, Schema.SObjectField> fieldMap = Schema.SObjectType.Document_Contractuel__c.fields.getMap();
+            
+            List<String> fieldNames = new List<String>();
+            for (String fieldName : fieldMap.keySet()) {
+                Schema.DescribeFieldResult fieldDescribe = fieldMap.get(fieldName).getDescribe();
+                // Vérifier si le champ est accessible et requêtable
+                if (fieldDescribe.isAccessible() && fieldName!='Detail_prix_offre__c') {
+                    fieldNames.add(fieldName);
+                }
+            }
+            
+            // **Construire la requête SOQL avec tous les champs récupérés**
+            String queryString = 'SELECT ' + String.join(fieldNames, ', ') + ' FROM Document_Contractuel__c WHERE Id = :recordId';
+            system.debug('Query doc :'+queryString);
+            Document_Contractuel__c doc = Database.query(queryString);
+            
+            // **Étape 1.1 : Récupérer dynamiquement tous les champs de Partenaire_Contractuel__c**
+            Map<String, Schema.SObjectField> fieldMapPartnaires = Schema.SObjectType.Partenaire_contractuel__c.fields.getMap();
+            
+            List<String> fieldNamesPartnaires = new List<String>();
+            fieldNamesPartnaires.add('Contact__r.GEG_eFluid_ID__c'); //Add contact fields
+            fieldNamesPartnaires.add('Contact__r.FirstName'); //Add contact fields
+            fieldNamesPartnaires.add('Contact__r.LastName'); //Add contact fields
+            for (String fieldNamePartnaires : fieldMapPartnaires.keySet()) {
+                Schema.DescribeFieldResult fieldDescribePartnaires = fieldMapPartnaires.get(fieldNamePartnaires).getDescribe();
+                // Vérifier si le champ est accessible et requêtable
+                if (fieldDescribePartnaires.isAccessible()) {
+                    fieldNamesPartnaires.add(fieldNamePartnaires);
+                }
+            }
+            
+            // **Construire la requête SOQL avec tous les champs récupérés pour Partenaire_contractuel__c**
+            String queryStringPartnaires = 'SELECT ' + String.join(fieldNamesPartnaires, ', ') + '  FROM Partenaire_contractuel__c WHERE Document_contractuel__c = :recordId';
+            system.debug('queryStringPartnaires :'+queryStringPartnaires);
+            String jsonData='';
+            
+            List<Partenaire_contractuel__c> partenairesList = Database.query(queryStringPartnaires);
+            if(!partenairesList.isEmpty()){
+                Map<String, Object> docMap = (Map<String, Object>) JSON.deserializeUntyped(JSON.serialize(doc));
+                docMap.put('Partenaire_contractuel', partenairesList); // Ajouter la liste des partenaires
+                // **Sérialiser l'enregistrement en JSON**      
+                jsonData = JSON.serializePretty(docMap);
+            }else{
+                jsonData= JSON.serializePretty(doc);
+            }            
+            system.debug('JSON : \n'+jsonData);                
+            // Step 1: Get CSRF token
+            HttpRequest getTokenRequest = new HttpRequest();
+            getTokenRequest.setEndpoint(settings.Endpoint__c);
+            system.debug('EndPoint : '+settings.Endpoint__c);
+            getTokenRequest.setMethod('GET');
+            getTokenRequest.setHeader('Content-Type', 'application/json');
+            getTokenRequest.setHeader('x-csrf-token', 'Fetch');
+            Blob headerValue = Blob.valueOf(settings.Username__c + ':' + settings.Password__c);
+            String authorizationHeader = 'Basic ' + EncodingUtil.base64Encode(headerValue);
+            getTokenRequest.setHeader('Authorization', authorizationHeader);
+            
+            Http http = new Http();
+            HTTPResponse getTokenResponse = http.send(getTokenRequest);
+            String csrfToken = getTokenResponse.getHeader('x-csrf-token');
+            System.debug('CSRF Token: ' + csrfToken);
+            System.debug('DEBUG Body GET: ' + getTokenResponse.getBody());
+            // Log all headers from GET response
+            System.debug('GET Response Headers: ' + getTokenResponse.getHeaderKeys());
+            for (String headerKey : getTokenResponse.getHeaderKeys()) {
+                System.debug('GET Header ' + headerKey + ': ' + getTokenResponse.getHeader(headerKey));
+            }
+            
+            // Extract cookies from the GET response
+            String cookies = '';
+            for (String headerKey : getTokenResponse.getHeaderKeys()) {
+                if (headerKey == 'Set-Cookie') {
+                    if (!cookies.equals('')) {
+                        cookies += '; ';
+                    }
+                    cookies += getTokenResponse.getHeader(headerKey);
+                }
+            }
+            System.debug('Cookies: ' + cookies);
+            
+            if (csrfToken == null || csrfToken.equals('')) {
+                throw new CalloutException('Failed to retrieve CSRF token');
+            }
+            // Step 2: Send data with CSRF token and cookies
+            HttpRequest req = new HttpRequest();
+            req.setEndpoint(settings.Endpoint__c);
+            req.setMethod('POST');
+            req.setHeader('Content-Type', 'application/json');
+            req.setHeader('x-csrf-token', csrfToken);
+            req.setHeader('Authorization', authorizationHeader);
+            
+            // Only set the cookie header if cookies were returned in the GET response
+            if (cookies != null && !cookies.equals('')) {
+                req.setHeader('Cookie', cookies);
+            } else {
+                System.debug('No cookies received from the initial request.');
+            }
+            
+            // Include the serialized data in the HTTP body
+            req.setBody(jsonData);
+            
+            HTTPResponse res = http.send(req);
+            System.debug('DEBUG Status: ' + res.getStatus());
+            System.debug('DEBUG Headers: ' + res.getHeaderKeys());
+            for (String headerKey : res.getHeaderKeys()) {
+                System.debug('Header ' + headerKey + ': ' + res.getHeader(headerKey));
+            }
+            
+            System.debug('DEBUG Status: ' + res.getStatus());
+            System.debug('DEBUG Body : ' + res.getBody());
+            String body = res.getBody();
+            Integer code = 0;
+            String transDocNo;
+            try {
+                
+                code = (res == null) ? 0 : res.getStatusCode();
+                
+                // Vérifie si le code HTTP est entre 200 et 299
+                if (code >= 200 && code < 300) {
+                    
+                    if (body != null && body.contains('<trans_doc_no>')) {
+                        transDocNo = body.substringBetween('<trans_doc_no>', '</trans_doc_no>');
+                        if(transDocNo != null && transDocNo !='' ){
+                            doc.Statut_envoi_SAP__c = 'Succès';
+                            doc.Date_dernier_envoi_SAP__c = System.now();
+                            doc.Statut_de_la_souscription__c = 'Validé et Envoyé';
+                            doc.N_Transfert_doc__c = transDocNo;
+                        }
+                    }              
+                } else {
+                    doc.Statut_envoi_SAP__c = 'Erreur';
+                    doc.Date_dernier_envoi_SAP__c = System.now();
+                    System.debug('Envoi SAP KO - Code HTTP: ' + code + ' - Body: ' + (res == null ? 'null' : res.getBody()));
+                }
+                
+            } catch (Exception e) {
+                doc.Statut_envoi_SAP__c = 'Erreur';
+                doc.Date_dernier_envoi_SAP__c = System.now();
+                System.debug('Exception envoi SAP: ' + e.getMessage());
+            }         
+            try {
+                update doc;
+            } catch (DmlException d) {
+                System.debug('Erreur update statut envoi SAP: ' + d.getMessage());
+            }
+        } catch (Exception e) {
+            System.debug('DEBUG Error: ' + e.getMessage());
+        }
+    }
+}
