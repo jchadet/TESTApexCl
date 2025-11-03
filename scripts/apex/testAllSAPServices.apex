@@ -18,6 +18,26 @@
  * - Via SF CLI : sf apex run -f scripts/apex/testAllSAPServices.apex -o origame5-dev
  */
 
+// Récupérer les informations de l'org
+Organization org = [SELECT Name, IsSandbox, InstanceName, OrganizationType FROM Organization LIMIT 1];
+String orgInfo = org.Name;
+if (org.IsSandbox) {
+    // Récupérer le nom du sandbox depuis l'URL (ex: origame5)
+    String baseUrl = URL.getOrgDomainUrl().toExternalForm();
+    if (baseUrl.contains('--')) {
+        String sandboxName = baseUrl.substringBetween('--', '.').substringBefore('.sandbox');
+        if (String.isNotBlank(sandboxName)) {
+            orgInfo = orgInfo + ' (Sandbox: ' + sandboxName + ')';
+        } else {
+            orgInfo = orgInfo + ' (Sandbox)';
+        }
+    } else {
+        orgInfo = orgInfo + ' (Sandbox)';
+    }
+} else {
+    orgInfo = orgInfo + ' (Production)';
+}
+
 System.debug('\n\n');
 System.debug('╔════════════════════════════════════════════════════════════════════════╗');
 System.debug('║                                                                        ║');
@@ -26,7 +46,9 @@ System.debug('║                                                               
 System.debug('╚════════════════════════════════════════════════════════════════════════╝');
 System.debug('\n');
 System.debug('Date/Heure du test : ' + System.now());
-System.debug('Environnement : Salesforce Org');
+System.debug('Environnement      : ' + orgInfo);
+System.debug('Type d\'org         : ' + org.OrganizationType);
+System.debug('Instance           : ' + org.InstanceName);
 System.debug('\n');
 
 // Variables pour tracker les résultats
