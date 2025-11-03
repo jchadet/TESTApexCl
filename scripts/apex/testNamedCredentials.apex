@@ -11,12 +11,12 @@
  * - Via SF CLI : sf apex run -f testNamedCredentials.apex -o origame5-dev
  */
 
-public class NamedCredentialTester {
+class NamedCredentialTester {
 
     /**
      * Teste un Named Credential spécifique
      */
-    public static void testNamedCredential(String namedCredentialName, String relativeEndpoint, String httpMethod) {
+    static void testNamedCredential(String namedCredentialName, String relativeEndpoint, String httpMethod) {
         System.debug('========================================');
         System.debug('Test du Named Credential: ' + namedCredentialName);
         System.debug('========================================');
