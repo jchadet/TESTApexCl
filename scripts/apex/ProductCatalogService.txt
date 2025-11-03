@@ -1,0 +1,90 @@
+Nom du service
+
+ProductCatalogService
+
+Source de création
+
+Appel externe HTTP dans Flow Builder
+
+Description
+
+
+Type
+
+OpenApi3
+
+Identifiants nommés
+
+SAP_Product_Catalog_Service
+
+Créé par
+
+Joel CHADET
+
+Date de création
+
+31 octobre 2025 à 09:39
+
+Dernière modification par
+
+Joel CHADET
+
+Date de dernière modification
+
+31 octobre 2025 à 09:39
+
+Action : ProductCatalogInvocable
+Method : POST
+Exemple Request JSON : 
+{
+    "CITY_CODE": "sample string",
+    "ENERGY": "sample string",
+    "PS": "sample string",
+    "UIL_USAGE": "sample string",
+    "GAS_TARIF_DIST": "sample string",
+    "GAS_NTR": "sample string",
+    "FREQ_TRANSMIS": "sample string",
+    "GRID_USAGE": "sample string",
+    "OPT_TARIF": "sample string",
+    "CAR": "sample string",
+    "SERVICE_PACK": "sample string",
+    "REFDATE": "sample string",
+    "DISTRIBUTOR": "sample string",
+    "OPT_FTA": "sample string",
+    "TARIF": "sample string",
+    "GREEN_OPTION": "sample string",
+    "SERVICE_OPT": ["sample string"],
+    "GREEN_RATE": "sample string",
+    "DOM_TENSION": "sample string"
+}
+
+Exemple Response JSON :
+[{
+    "DESCRIPTION": "sample string",
+    "PRODUCT": "sample string",
+    "SIMULATION": {
+        "CURRENCY": "sample string",
+        "PRICES": [{
+            "PREISBTR_TTC": 2.5,
+            "PREISBTR_HT": 2.5,
+            "COMPONENT": "sample string",
+            "PREISBTR_HTT": 2.5,
+            "REGCLASS": "sample string"
+        }],
+        "CONFIGURATION": {
+            "CODE_CONCESSION": "sample string",
+            "ZONE_TARIF": "sample string"
+        },
+        "TOTAL_HT": 2.5,
+        "TOTAL_TTC": 2.5,
+        "DETAIL": [{
+            "AMOUNT_TTC": 2.5,
+            "VAT_RATE": 2.5,
+            "AMOUNT_HT": 2.5,
+            "COMPONENT": "sample string",
+            "INCLUDED": "sample string"
+        }],
+        "MONTHLY_PAYMENT": 2.5,
+        "TOTAL_HTT": 2.5
+    }
+}]
