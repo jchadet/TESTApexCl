@@ -2,6 +2,26 @@
 
 Ce dossier contient des scripts Apex anonymous pour tester les 3 Named Credentials configurés pour les callouts SAP.
 
+## 🚀 Démarrage rapide - Script consolidé
+
+**Pour tester tous les services en une seule exécution**, utilisez le script consolidé :
+
+```bash
+sf apex run -f scripts/apex/testAllSAPServices.apex -o origame5-dev
+```
+
+Ce script teste automatiquement les 3 Named Credentials et affiche :
+- ✓ Un tableau récapitulatif avec le statut de chaque service
+- 📊 Des statistiques de réussite/échec
+- 🎯 Un verdict global et des recommandations ciblées
+
+**Paramètres à adapter dans `testAllSAPServices.apex` :**
+- Ligne 129 : `pointId` pour Service GreenAlp
+- Ligne 130 : `loginUtilisateur` pour Service GreenAlp
+- Ligne 171 : `CITY_CODE` et autres paramètres pour Product Catalog
+
+---
+
 ## 📋 Vue d'ensemble des services SAP
 
 | Named Credential | Nom Fonctionnel | Script de Test | Méthode |
@@ -241,14 +261,17 @@ Tous les scripts affichent des symboles clairs pour indiquer le statut :
 ```
 scripts/apex/
 ├── README.md                           # Ce fichier
-├── listNamedCredentials.apex           # Lister tous les Named Credentials
+├── testAllSAPServices.apex             # ⭐ TEST CONSOLIDÉ (tous les services)
 ├── testSAPEndpointService.apex         # Test Service GreenAlp (Détails Point)
 ├── testSAPBTPActivation.apex           # Test Service Activation (CSRF Token)
 ├── testSAPProductCatalog.apex          # Test Service des Produits (Catalogue)
+├── listNamedCredentials.apex           # Lister tous les Named Credentials
 ├── SAPDetailPointServiceCallout        # Classe pour Service GreenAlp
 ├── CallSAPBTPEndpointQueueable         # Classe pour Service Activation
 └── ProductCatalogService.txt           # Documentation External Service
 ```
+
+**Recommandation :** Utilisez `testAllSAPServices.apex` pour une vue d'ensemble complète, ou les scripts individuels pour des tests ciblés.
 
 ---
 
