@@ -1,0 +1,129 @@
+public class SAPDetailPointServiceCallout {
+    
+    // Classes pour la structure de données
+    public class SAPResponse {
+        public String responseCode;
+        public String defaultValue;
+        public Object data;
+        public Boolean isSuccess;
+    }
+    
+    public class DonneesDemandees {
+        public Boolean modificationsContractuellesEnCours;
+        public Boolean interventionsEnCours;
+        public Boolean historiqueAffaires;
+        public Boolean elementsProchainesMesures;
+        public Boolean donneesGeneralesPoint;
+        public Boolean derniersIndex;
+        
+        // Constructeur avec valeurs par défaut
+        public DonneesDemandees() {
+            this.modificationsContractuellesEnCours = false;
+            this.interventionsEnCours = false;
+            this.historiqueAffaires = false;
+            this.elementsProchainesMesures = false;
+            this.donneesGeneralesPoint = true;
+            this.derniersIndex = false;
+        }
+    }
+    
+    public class SAPRequestBody {
+        public String loginUtilisateur;
+        public DonneesDemandees donneesDemandees;
+        public Boolean contratConcluNouveauClientSurSite;
+        public Boolean autorisationClient;
+    }
+    
+    /**
+     * Méthode principale flexible pour invoquer le service SAP
+     */
+    public static SAPResponse callSAP(String pointId, String loginUtilisateur, 
+                                     DonneesDemandees donneesDemandees,
+                                     Boolean contratConcluNouveauClientSurSite,
+                                     Boolean autorisationClient) {
+        
+        Http http = new Http();
+        HttpRequest request = new HttpRequest();
+        
+        // ID dans l'URL comme paramètre de requête
+        String endpoint = 'callout:SAP_Endpoint_Service/DetailPointService?id=' + pointId;
+        request.setEndpoint(endpoint);
+        request.setMethod('POST');
+        request.setHeader('Content-Type', 'application/json');
+        request.setHeader('Accept', 'application/json');
+        
+        // Construction du body
+        SAPRequestBody requestBodyObj = new SAPRequestBody();
+        requestBodyObj.loginUtilisateur = loginUtilisateur;
+        requestBodyObj.donneesDemandees = donneesDemandees;
+        requestBodyObj.contratConcluNouveauClientSurSite = contratConcluNouveauClientSurSite;
+        requestBodyObj.autorisationClient = autorisationClient;
+        
+        String requestBody = JSON.serialize(requestBodyObj);
+        request.setBody(requestBody);
+        
+        System.debug('=== REQUETE ===');
+        System.debug('Endpoint: ' + endpoint);
+        System.debug('Body: ' + JSON.serializePretty(requestBodyObj));
+        
+        SAPResponse sapResponse = new SAPResponse();
+        
+        try {
+            HttpResponse response = http.send(request);
+            sapResponse.responseCode = String.valueOf(response.getStatusCode());
+            
+            System.debug('=== REPONSE ===');
+            System.debug('Status: ' + response.getStatusCode());
+            System.debug('Body: ' + response.getBody());
+            
+            if (response.getStatusCode() == 200 || response.getStatusCode() == 201) {
+                sapResponse.isSuccess = true;
+                sapResponse.defaultValue = 'Success';
+                String responseBody = response.getBody();
+                
+                if (String.isNotBlank(responseBody) && responseBody.trim() != '{}') {
+                    sapResponse.data = JSON.deserializeUntyped(responseBody);
+                } else {
+                    System.debug('ATTENTION: Body vide');
+                    sapResponse.data = new Map<String, Object>();
+                }
+            } else {
+                sapResponse.isSuccess = false;
+                sapResponse.defaultValue = 'HTTP Error: ' + response.getStatus();
+            }
+            
+        } catch (Exception e) {
+            sapResponse.responseCode = '500';
+            sapResponse.defaultValue = 'Exception: ' + e.getMessage();
+            sapResponse.isSuccess = false;
+            System.debug('Exception: ' + e.getMessage());
+        }
+        
+        return sapResponse;
+    }
+    
+    /**
+     * Traitement asynchrone
+     */
+    @future(callout=true)
+    public static void callSAPAsync(String pointId, String loginUtilisateur,
+                                   String donneesDemandeesJSON,
+                                   Boolean contratConcluNouveauClientSurSite,
+                                   Boolean autorisationClient) {
+        
+        DonneesDemandees donnees = (DonneesDemandees) JSON.deserialize(
+            donneesDemandeesJSON, 
+            DonneesDemandees.class
+        );
+        
+        SAPResponse response = callSAP(pointId, loginUtilisateur, donnees, 
+                                      contratConcluNouveauClientSurSite, 
+                                      autorisationClient);
+        
+        if (response.isSuccess) {
+            System.debug('Traitement async réussi pour: ' + pointId);
+        } else {
+            System.debug('Erreur async: ' + response.defaultValue);
+        }
+    }
+}
