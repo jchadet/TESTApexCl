@@ -1,68 +1,143 @@
 # Test des Named Credentials SAP
 
-Ce dossier contient un script Apex anonymous pour tester les Named Credentials configurés pour les callouts SAP.
+Ce dossier contient des scripts Apex anonymous pour tester les 3 Named Credentials configurés pour les callouts SAP.
 
-## Named Credentials testés
+## 📋 Vue d'ensemble des services SAP
 
-1. **SAP BTP http**
-   - Endpoint: `https://geg-distributeur-dev.it-cpi024-rt.cfapps.eu10-002.hana.ondemand.com/http/DF/SalesForce/activation`
-   - External Credential: SAP BTP HTTP External Credential
+| Named Credential | Nom Fonctionnel | Script de Test | Méthode |
+|-----------------|-----------------|----------------|---------|
+| **SAP_Endpoint_Service** | Service GreenAlp | `testSAPEndpointService.apex` | POST |
+| **SAP BTP http** | Service Activation | `testSAPBTPActivation.apex` | GET |
+| **SAP_Product_Catalog_Service** | Service des Produits | `testSAPProductCatalog.apex` | POST |
 
-2. **SAP Endpoint Service**
-   - Endpoint: `https://geg-api.test.apimanagement.eu10.hana.ondemand.com:443/DG`
-   - External Credential: SAP Endpoint ExternalService
+---
 
-3. **SAP Product Catalog Service**
-   - Endpoint: `https://geg-api.test.apimanagement.eu10.hana.ondemand.com:443/DF/ProductCatalog`
-   - External Credential: ProductCatalogExternalService
+## 1️⃣ SAP Endpoint Service (Service GreenAlp)
 
-## Préparation
+### Description
+Service pour interroger les détails d'un point de livraison (PDL) dans SAP.
 
-### 1. Vérifier les noms exacts des Named Credentials
+### Configuration
+- **Named Credential** : `SAP_Endpoint_Service`
+- **External Credential** : `SAP Endpoint ExternalService`
+- **Endpoint** : `https://geg-api.test.apimanagement.eu10.hana.ondemand.com:443/DG`
+- **Script de test** : `testSAPEndpointService.apex`
 
-Avant d'exécuter le script, vous devez vérifier les noms **exacts** de vos Named Credentials dans Salesforce :
+### Prérequis
+- La classe Apex `SAPDetailPointServiceCallout` doit exister dans votre org
 
-1. Allez dans **Setup** > **Named Credentials**
-2. Notez les noms API exacts (DeveloperName) de vos 3 Named Credentials
-3. Ouvrez le fichier `testNamedCredentials.apex`
-4. Remplacez les noms dans les appels de fonction :
-   - `'SAP_BTP_http'` → remplacer par le nom exact
-   - `'SAP_Endpoint_Service'` → remplacer par le nom exact
-   - `'SAP_Product_Catalog_Service'` → remplacer par le nom exact
-
-### 2. Adapter les méthodes HTTP
-
-Par défaut, le script utilise la méthode `GET`. Si vos endpoints SAP nécessitent d'autres méthodes (POST, PUT, etc.), modifiez les appels :
-
+### Paramètres à adapter
+Ouvrez `testSAPEndpointService.apex` et modifiez :
 ```apex
-NamedCredentialTester.testNamedCredential(
-    'Votre_Named_Credential',
-    '',
-    'POST'  // Changer ici : GET, POST, PUT, PATCH, DELETE
-);
+String pointId = '125278EC1';  // Point ID à tester
+String loginUtilisateur = 'votre.email@example.com';  // Votre login
 ```
 
-## Exécution du script
-
-### Option 1 : Via Developer Console (Interface Web)
-
-1. Dans Salesforce, appuyez sur **F12** ou allez dans **Developer Console**
-2. Cliquez sur **Debug** > **Open Execute Anonymous Window**
-3. Copiez tout le contenu du fichier `testNamedCredentials.apex`
-4. Collez-le dans la fenêtre
-5. Cochez **Open Log**
-6. Cliquez sur **Execute**
-7. Consultez les logs pour voir les résultats
-
-### Option 2 : Via SF CLI (Ligne de commande)
-
+### Exécution
 ```bash
-sf apex run -f scripts/apex/testNamedCredentials.apex -o origame5-dev
+# Via Developer Console : copier/coller le contenu et exécuter
+# Ou via SF CLI :
+sf apex run -f scripts/apex/testSAPEndpointService.apex -o origame5-dev
 ```
 
-## Interprétation des résultats
+### Résultat attendu
+- ✓ **SUCCÈS** : Retourne les données du point (informations générales, index, etc.)
+- ✗ **ÉCHEC** : Vérifier que le point ID existe dans SAP
 
-Le script affiche des symboles pour indiquer le statut de chaque test :
+---
+
+## 2️⃣ SAP BTP HTTP (Service Activation)
+
+### Description
+Service pour l'activation de contrats et l'envoi de documents contractuels vers SAP.
+
+### Configuration
+- **Named Credential** : `SAP BTP http`
+- **External Credential** : `SAP BTP HTTP External Credential`
+- **Endpoint** : `https://geg-distributeur-dev.it-cpi024-rt.cfapps.eu10-002.hana.ondemand.com/http/DF/SalesForce/activation`
+- **Script de test** : `testSAPBTPActivation.apex`
+
+### Prérequis
+- Le Custom Metadata Type `SAP_IntegrationSettings__mdt` doit exister avec :
+  - `Endpoint__c` : L'URL du service
+  - `Username__c` : Nom d'utilisateur SAP
+  - `Password__c` : Mot de passe SAP
+
+### Configuration du Custom Metadata
+1. Allez dans **Setup** > **Custom Metadata Types**
+2. Cliquez sur **SAP_IntegrationSettings**
+3. Cliquez sur **Manage Records**
+4. Créez ou modifiez un enregistrement avec les valeurs ci-dessus
+
+### Exécution
+```bash
+# Via Developer Console : copier/coller le contenu et exécuter
+# Ou via SF CLI :
+sf apex run -f scripts/apex/testSAPBTPActivation.apex -o origame5-dev
+```
+
+### Résultat attendu
+- ✓ **SUCCÈS** : Récupération du CSRF token → Authentification OK
+- ✗ **ÉCHEC** : Vérifier les credentials dans le Custom Metadata
+
+### Note importante
+Ce test effectue **uniquement un GET** pour récupérer le CSRF token. Il ne fait pas de POST (envoi de données). C'est suffisant pour vérifier que la connexion et l'authentification fonctionnent.
+
+---
+
+## 3️⃣ SAP Product Catalog Service (Service des Produits)
+
+### Description
+Service pour rechercher des produits énergétiques et obtenir des simulations de prix.
+
+### Configuration
+- **Named Credential** : `SAP_Product_Catalog_Service`
+- **External Credential** : `ProductCatalogExternalService`
+- **Endpoint** : `https://geg-api.test.apimanagement.eu10.hana.ondemand.com:443/DF/ProductCatalog`
+- **Script de test** : `testSAPProductCatalog.apex`
+
+### Paramètres à adapter
+Ouvrez `testSAPProductCatalog.apex` et modifiez les paramètres de recherche :
+```apex
+'CITY_CODE' => '38000',        // Code postal/ville
+'ENERGY' => 'ELEC',            // Type d'énergie : ELEC ou GAS
+'PS' => '6',                   // Puissance souscrite
+'UIL_USAGE' => 'PRO',          // Usage : PRO, RES
+'OPT_TARIF' => 'BASE',         // Option tarifaire
+'DISTRIBUTOR' => 'ENEDIS',     // Distributeur
+// ... etc.
+```
+
+### Exécution
+```bash
+# Via Developer Console : copier/coller le contenu et exécuter
+# Ou via SF CLI :
+sf apex run -f scripts/apex/testSAPProductCatalog.apex -o origame5-dev
+```
+
+### Résultat attendu
+- ✓ **SUCCÈS** : Retourne une liste de produits avec simulations de prix (HT, TTC, mensualités)
+- ✗ **ÉCHEC 400** : Vérifier les paramètres de la requête (valeurs invalides)
+
+---
+
+## 🛠️ Scripts utilitaires
+
+### listNamedCredentials.apex
+Script pour lister tous les Named Credentials de votre org et identifier ceux liés à SAP.
+
+**Exécution :**
+```bash
+sf apex run -f scripts/apex/listNamedCredentials.apex -o origame5-dev
+```
+
+**Usage :** À exécuter en premier pour vérifier les noms exacts des Named Credentials.
+
+---
+
+## 📊 Interprétation des résultats
+
+Tous les scripts affichent des symboles clairs pour indiquer le statut :
 
 - **✓ SUCCÈS** : Named Credential configuré correctement (HTTP 200-299)
 - **✗ ÉCHEC** : Problème de configuration ou d'authentification
@@ -72,71 +147,109 @@ Le script affiche des symboles pour indiquer le statut de chaque test :
 
 | Code | Signification | Action à prendre |
 |------|---------------|------------------|
-| 200-299 | Succès | Named Credential OK |
+| 200-299 | Succès | Named Credential OK ✓ |
+| 400 | Bad Request | Vérifier les paramètres de la requête |
 | 401 | Non autorisé | Vérifier l'External Credential (username/password/token) |
 | 403 | Interdit | Vérifier les permissions SAP |
-| 404 | Non trouvé | Vérifier l'URL de l'endpoint |
+| 404 | Non trouvé | Vérifier l'URL de l'endpoint ou l'ID recherché |
 | 500-599 | Erreur serveur SAP | Contacter l'équipe SAP |
 
-### Erreurs de callout
+---
 
-Si vous voyez `Unauthorized endpoint`, ajoutez l'URL dans **Remote Site Settings** :
-
-1. **Setup** > **Remote Site Settings**
-2. Cliquez sur **New Remote Site**
-3. Ajoutez l'URL de base SAP
-
-## Personnalisation du script
-
-### Ajouter des en-têtes personnalisés
-
-Dans la fonction `testNamedCredential`, ajoutez :
-
-```apex
-req.setHeader('Custom-Header', 'Valeur');
-```
-
-### Ajouter un body pour POST/PUT
-
-Modifiez la section body :
-
-```apex
-if (httpMethod == 'POST' || httpMethod == 'PUT') {
-    String body = JSON.serialize(new Map<String, Object>{
-        'key' => 'value'
-    });
-    req.setBody(body);
-}
-```
-
-### Tester avec des paramètres d'URL
-
-Utilisez le deuxième paramètre pour ajouter des paramètres :
-
-```apex
-NamedCredentialTester.testNamedCredential(
-    'SAP_Product_Catalog_Service',
-    '/products?limit=10',  // Ajouter des paramètres
-    'GET'
-);
-```
-
-## Troubleshooting
-
-### Problème : "Invalid named credential"
-**Solution** : Vérifier le nom exact du Named Credential (sensible à la casse)
+## 🔧 Troubleshooting
 
 ### Problème : "Unauthorized endpoint"
-**Solution** : Ajouter l'URL dans Remote Site Settings
+**Cause :** L'URL n'est pas autorisée dans Remote Site Settings
 
-### Problème : "Read timed out"
-**Solution** : Le serveur SAP ne répond pas, vérifier la connectivité réseau
+**Solution :**
+1. Allez dans **Setup** > **Remote Site Settings**
+2. Cliquez sur **New Remote Site**
+3. Ajoutez les URLs suivantes :
+   - `https://geg-api.test.apimanagement.eu10.hana.ondemand.com`
+   - `https://geg-distributeur-dev.it-cpi024-rt.cfapps.eu10-002.hana.ondemand.com`
+
+### Problème : "Invalid named credential"
+**Cause :** Le nom du Named Credential est incorrect ou n'existe pas
+
+**Solution :**
+1. Exécutez `listNamedCredentials.apex` pour voir les noms exacts
+2. Vérifiez dans **Setup** > **Named Credentials**
 
 ### Problème : HTTP 401/403
-**Solution** : Vérifier l'External Credential (credentials invalides ou expirés)
+**Cause :** Credentials invalides ou expirés
 
-## Support
+**Solution :**
+1. Vérifiez l'External Credential associé
+2. Testez les credentials directement dans SAP
+3. Vérifiez que l'utilisateur SAP a les permissions nécessaires
 
-Pour toute question, consulter la documentation Salesforce :
-- [Named Credentials](https://help.salesforce.com/articleView?id=sf.named_credentials_about.htm)
-- [External Credentials](https://help.salesforce.com/articleView?id=sf.external_credentials_about.htm)
+### Problème : "Read timed out"
+**Cause :** Le serveur SAP ne répond pas
+
+**Solution :**
+1. Vérifier la connectivité réseau vers SAP
+2. Vérifier que le service SAP est opérationnel
+3. Contacter l'équipe SAP si le problème persiste
+
+### Problème : SAP_IntegrationSettings__mdt introuvable
+**Cause :** Le Custom Metadata Type n'existe pas (pour SAP BTP HTTP)
+
+**Solution :**
+1. Allez dans **Setup** > **Custom Metadata Types**
+2. Créez le type `SAP_IntegrationSettings__mdt` avec les champs :
+   - `Endpoint__c` (Text)
+   - `Username__c` (Text)
+   - `Password__c` (Text, Protected)
+3. Créez un enregistrement avec les valeurs de connexion SAP
+
+---
+
+## 📝 Bonnes pratiques
+
+1. **Testez dans l'ordre :**
+   - Commencez par `testSAPBTPActivation.apex` (GET simple)
+   - Puis `testSAPEndpointService.apex`
+   - Enfin `testSAPProductCatalog.apex`
+
+2. **Activez les logs détaillés :**
+   - Dans Developer Console : **Debug** > **Change Log Levels**
+   - Mettez **Apex Code** à **FINEST**
+
+3. **Utilisez des données de test valides :**
+   - Point ID existant dans SAP
+   - Code postal/ville valide
+   - Paramètres cohérents avec votre contexte
+
+4. **En cas d'échec :**
+   - Lisez attentivement les messages d'erreur
+   - Consultez la section "SOLUTIONS POSSIBLES" dans les logs
+   - Vérifiez les configurations Salesforce ET SAP
+
+---
+
+## 📚 Ressources
+
+- [Named Credentials - Salesforce Documentation](https://help.salesforce.com/articleView?id=sf.named_credentials_about.htm)
+- [External Credentials - Salesforce Documentation](https://help.salesforce.com/articleView?id=sf.external_credentials_about.htm)
+- [Remote Site Settings - Salesforce Documentation](https://help.salesforce.com/articleView?id=sf.configuring_remoteproxy.htm)
+- [Custom Metadata Types - Salesforce Documentation](https://help.salesforce.com/articleView?id=sf.custommetadatatypes_overview.htm)
+
+---
+
+## 🎯 Résumé des fichiers
+
+```
+scripts/apex/
+├── README.md                           # Ce fichier
+├── listNamedCredentials.apex           # Lister tous les Named Credentials
+├── testSAPEndpointService.apex         # Test Service GreenAlp (Détails Point)
+├── testSAPBTPActivation.apex           # Test Service Activation (CSRF Token)
+├── testSAPProductCatalog.apex          # Test Service des Produits (Catalogue)
+├── SAPDetailPointServiceCallout        # Classe pour Service GreenAlp
+├── CallSAPBTPEndpointQueueable         # Classe pour Service Activation
+└── ProductCatalogService.txt           # Documentation External Service
+```
+
+---
+
+**Dernière mise à jour :** Novembre 2025
