@@ -25,27 +25,17 @@ System.debug('CONFIGURATION DES PARAMÈTRES DE TEST');
 System.debug('=====================================');
 System.debug('\n');
 
-// Construction du body de la requête avec des valeurs de test
+// Construction du body avec des valeurs réelles qui fonctionnent
+// Basé sur un appel SAP réussi depuis Salesforce
 Map<String, Object> requestBody = new Map<String, Object>{
-    'CITY_CODE' => '38000',           // ⚠️ Code postal/ville à adapter
-    'ENERGY' => 'ELEC',                // Type d'énergie : ELEC ou GAS
-    'PS' => '6',                       // Puissance souscrite
-    'UIL_USAGE' => 'PRO',              // Usage : PRO, RES, etc.
-    'GAS_TARIF_DIST' => '',            // Tarif distributeur gaz (si applicable)
-    'GAS_NTR' => '',                   // NTR gaz (si applicable)
-    'FREQ_TRANSMIS' => 'MONTHLY',      // Fréquence de transmission
-    'GRID_USAGE' => 'C5',              // Usage réseau
-    'OPT_TARIF' => 'BASE',             // Option tarifaire : BASE, HP/HC, etc.
-    'CAR' => '5',                      // CAR
-    'SERVICE_PACK' => 'STANDARD',      // Pack de services
-    'REFDATE' => String.valueOf(System.today()), // Date de référence
-    'DISTRIBUTOR' => 'ENEDIS',         // Distributeur
-    'OPT_FTA' => '',                   // Option FTA
-    'TARIF' => 'C5',                   // Tarif
-    'GREEN_OPTION' => 'NO',            // Option verte : YES/NO
-    'SERVICE_OPT' => new List<String>(), // Options de service
-    'GREEN_RATE' => '0',               // Taux vert
-    'DOM_TENSION' => 'BT'              // Domaine de tension : BT, HTA, etc.
+    'CITY_CODE' => '69387',            // ⚠️ Code INSEE de la commune (ex: 69387 = Lyon 7ème)
+    'ENERGY' => '01',                  // Code énergie : 01=Electricité, 02=Gaz
+    'UIL_USAGE' => 'DOM',              // Usage : DOM=Domestique, PRO=Professionnel
+    'CAR' => '4\u202f500',             // CAR (puissance) avec espace insécable
+    'GREEN_OPTION' => 'FOR',           // Option verte : FOR (Forfait), ECO, etc.
+    'GREEN_RATE' => '100',             // Taux d'énergie verte en % (0-100)
+    'SERVICE_OPT' => '0xf926425',      // Code hexadécimal des options de service
+    'REFDATE' => DateTime.now().format('yyyyMMdd') // Date au format YYYYMMDD (ex: 20251105)
 };
 
 System.debug('Paramètres de la requête:');

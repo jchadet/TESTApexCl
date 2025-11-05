@@ -210,27 +210,16 @@ System.debug('Méthode          : POST (recherche produits)');
 System.debug('Action           : ProductCatalogInvocable');
 System.debug('\n');
 
-// ⚠️ PARAMÈTRES À ADAPTER
+// ⚠️ PARAMÈTRES À ADAPTER (basés sur un appel réel qui fonctionne)
 Map<String, Object> requestBody = new Map<String, Object>{
-    'CITY_CODE' => '38000',
-    'ENERGY' => 'ELEC',
-    'PS' => '6',
-    'UIL_USAGE' => 'PRO',
-    'GAS_TARIF_DIST' => '',
-    'GAS_NTR' => '',
-    'FREQ_TRANSMIS' => 'MONTHLY',
-    'GRID_USAGE' => 'C5',
-    'OPT_TARIF' => 'BASE',
-    'CAR' => '5',
-    'SERVICE_PACK' => 'STANDARD',
-    'REFDATE' => String.valueOf(System.today()),
-    'DISTRIBUTOR' => 'ENEDIS',
-    'OPT_FTA' => '',
-    'TARIF' => 'C5',
-    'GREEN_OPTION' => 'NO',
-    'SERVICE_OPT' => new List<String>(),
-    'GREEN_RATE' => '0',
-    'DOM_TENSION' => 'BT'
+    'CITY_CODE' => '69387',        // Code INSEE de la commune
+    'ENERGY' => '01',               // 01=Electricité, 02=Gaz
+    'UIL_USAGE' => 'DOM',           // DOM=Domestique, PRO=Professionnel
+    'CAR' => '4\u202f500',          // CAR (puissance) avec espace insécable
+    'GREEN_OPTION' => 'FOR',        // Option verte : FOR, ECO, etc.
+    'GREEN_RATE' => '100',          // Taux vert en %
+    'SERVICE_OPT' => '0xf926425',   // Code des options de service
+    'REFDATE' => DateTime.now().format('yyyyMMdd') // Date au format YYYYMMDD
 };
 
 System.debug('Paramètres :');

@@ -16,9 +16,12 @@ Ce script teste automatiquement les 3 Named Credentials et affiche :
 - 🎯 Un verdict global et des recommandations ciblées
 
 **Paramètres à adapter dans `testAllSAPServices.apex` :**
-- Ligne 129 : `pointId` pour Service GreenAlp
-- Ligne 130 : `loginUtilisateur` pour Service GreenAlp
-- Ligne 171 : `CITY_CODE` et autres paramètres pour Product Catalog
+- Ligne 149 : `pointId` pour Service GreenAlp (ex: '125278EC1')
+- Ligne 150 : `loginUtilisateur` pour Service GreenAlp (ex: 'user@example.com')
+- Ligne 215 : `CITY_CODE` (code INSEE, ex: '69387' pour Lyon 7ème)
+- Ligne 216 : `ENERGY` ('01'=Electricité, '02'=Gaz)
+- Ligne 217 : `UIL_USAGE` ('DOM'=Domestique, 'PRO'=Professionnel)
+- Ligne 218 : `CAR` (puissance avec espace insécable, ex: '4\u202f500')
 
 ---
 
@@ -119,14 +122,17 @@ Service pour rechercher des produits énergétiques et obtenir des simulations d
 ### Paramètres à adapter
 Ouvrez `testSAPProductCatalog.apex` et modifiez les paramètres de recherche :
 ```apex
-'CITY_CODE' => '38000',        // Code postal/ville
-'ENERGY' => 'ELEC',            // Type d'énergie : ELEC ou GAS
-'PS' => '6',                   // Puissance souscrite
-'UIL_USAGE' => 'PRO',          // Usage : PRO, RES
-'OPT_TARIF' => 'BASE',         // Option tarifaire
-'DISTRIBUTOR' => 'ENEDIS',     // Distributeur
-// ... etc.
+'CITY_CODE' => '69387',        // Code INSEE de la commune (ex: 69387 = Lyon 7ème)
+'ENERGY' => '01',              // Code énergie : 01=Electricité, 02=Gaz
+'UIL_USAGE' => 'DOM',          // Usage : DOM=Domestique, PRO=Professionnel
+'CAR' => '4\u202f500',         // Puissance avec espace insécable
+'GREEN_OPTION' => 'FOR',       // Option verte : FOR, ECO, etc.
+'GREEN_RATE' => '100',         // Taux d'énergie verte en % (0-100)
+'SERVICE_OPT' => '0xf926425',  // Code hexadécimal des options
+'REFDATE' => DateTime.now().format('yyyyMMdd') // Date au format YYYYMMDD
 ```
+
+**Note importante :** Ces valeurs sont basées sur un appel SAP réel qui fonctionne. Adaptez-les selon vos besoins de test.
 
 ### Exécution
 ```bash
