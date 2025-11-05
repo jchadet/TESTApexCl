@@ -53,17 +53,17 @@ System.debug('\n');
 
 // Variables pour tracker les résultats
 Map<String, String> testResults = new Map<String, String>();
-Integer totalTests = 3;
+Integer totalTests = 4;
 Integer successCount = 0;
 Integer failureCount = 0;
 
 // ============================================================================
-// TEST 1/3 : SAP BTP HTTP (SERVICE ACTIVATION)
+// TEST 1/4 : SAP BTP HTTP (SERVICE ACTIVATION)
 // ============================================================================
 
 System.debug('\n');
 System.debug('╔════════════════════════════════════════════════════════════════════════╗');
-System.debug('║  TEST 1/3 : SAP BTP HTTP - SERVICE ACTIVATION                         ║');
+System.debug('║  TEST 1/4 : SAP BTP HTTP - SERVICE ACTIVATION                         ║');
 System.debug('╚════════════════════════════════════════════════════════════════════════╝');
 System.debug('\n');
 System.debug('Named Credential : SAP BTP http');
@@ -136,12 +136,12 @@ try {
 }
 
 // ============================================================================
-// TEST 2/3 : SAP ENDPOINT SERVICE (SERVICE GREENALP)
+// TEST 2/4 : SAP ENDPOINT SERVICE (SERVICE GREENALP)
 // ============================================================================
 
 System.debug('\n\n');
 System.debug('╔════════════════════════════════════════════════════════════════════════╗');
-System.debug('║  TEST 2/3 : SAP ENDPOINT SERVICE - SERVICE GREENALP                   ║');
+System.debug('║  TEST 2/4 : SAP ENDPOINT SERVICE - SERVICE GREENALP                   ║');
 System.debug('╚════════════════════════════════════════════════════════════════════════╝');
 System.debug('\n');
 System.debug('Named Credential : SAP_Endpoint_Service');
@@ -197,12 +197,12 @@ try {
 }
 
 // ============================================================================
-// TEST 3/3 : SAP PRODUCT CATALOG SERVICE (SERVICE DES PRODUITS)
+// TEST 3/4 : SAP PRODUCT CATALOG SERVICE (SERVICE DES PRODUITS)
 // ============================================================================
 
 System.debug('\n\n');
 System.debug('╔════════════════════════════════════════════════════════════════════════╗');
-System.debug('║  TEST 3/3 : SAP PRODUCT CATALOG SERVICE - SERVICE DES PRODUITS        ║');
+System.debug('║  TEST 3/4 : SAP PRODUCT CATALOG SERVICE - SERVICE DES PRODUITS        ║');
 System.debug('╚════════════════════════════════════════════════════════════════════════╝');
 System.debug('\n');
 System.debug('Named Credential : SAP_Product_Catalog_Service');
@@ -270,6 +270,78 @@ try {
 }
 
 // ============================================================================
+// TEST 4/4 : SAP EXTERNAL DATA SOURCE (SALESFORCE CONNECT ODATA)
+// ============================================================================
+
+System.debug('\n\n');
+System.debug('╔════════════════════════════════════════════════════════════════════════╗');
+System.debug('║  TEST 4/4 : SAP EXTERNAL DATA SOURCE - SALESFORCE CONNECT             ║');
+System.debug('╚════════════════════════════════════════════════════════════════════════╝');
+System.debug('\n');
+System.debug('Type             : Salesforce Connect (OData 2.0)');
+System.debug('Source de données: SAP');
+System.debug('Objet externe    : SAPContract__x');
+System.debug('URL              : https://geg-api.test.apimanagement.eu10.hana.ondemand.com/ZAPI_SAP_SF_V2_DF1');
+System.debug('\n');
+
+try {
+    System.debug('Test de connexion via requête SOQL sur objet externe...');
+    System.debug('\n');
+
+    // Requête SOQL sur l'objet externe - Salesforce utilise automatiquement
+    // les credentials configurés dans External Data Source
+    List<SAPContract__x> contracts = [SELECT ExternalId FROM SAPContract__x LIMIT 1];
+
+    System.debug('✓ SUCCÈS - Connexion OData opérationnelle');
+    System.debug('Nombre d\'enregistrements récupérés : ' + contracts.size());
+
+    if (!contracts.isEmpty()) {
+        System.debug('Exemple d\'ExternalId récupéré : ' + contracts[0].ExternalId);
+    }
+
+    testResults.put('SAP OData Connect', 'SUCCÈS');
+    successCount++;
+
+} catch (System.QueryException e) {
+    System.debug('✗ ÉCHEC - Erreur de requête SOQL');
+    System.debug('Message : ' + e.getMessage());
+    System.debug('\n→ SOLUTIONS POSSIBLES:');
+
+    if (e.getMessage().contains('External Object is currently not writable or readable')) {
+        System.debug('  - L\'External Data Source "SAP" n\'est pas accessible');
+        System.debug('  - Vérifier que la source de données est validée et synchronisée');
+        System.debug('  - Setup > External Data Sources > SAP > Validate and Sync');
+    } else if (e.getMessage().contains('No such column')) {
+        System.debug('  - L\'objet externe SAPContract__x n\'est pas synchronisé');
+        System.debug('  - Allez dans Setup > External Objects > SAPContract__x');
+        System.debug('  - Vérifier les champs disponibles');
+    } else if (e.getMessage().contains('401') || e.getMessage().contains('Unauthorized')) {
+        System.debug('  - Problème d\'authentification avec SAP');
+        System.debug('  - Vérifier les credentials dans External Data Source "SAP"');
+        System.debug('  - Utilisateur : SFDC_CPI');
+        System.debug('  - Vérifier que le mot de passe est à jour');
+    } else if (e.getMessage().contains('timeout') || e.getMessage().contains('timed out')) {
+        System.debug('  - Le service SAP OData ne répond pas');
+        System.debug('  - Vérifier la connectivité réseau');
+        System.debug('  - Vérifier que le service SAP est opérationnel');
+    } else {
+        System.debug('  - Erreur générique de connexion OData');
+        System.debug('  - Vérifier l\'External Data Source dans Setup');
+        System.debug('  - Vérifier les Remote Site Settings');
+    }
+
+    testResults.put('SAP OData Connect', 'ÉCHEC - Query Error');
+    failureCount++;
+
+} catch (Exception e) {
+    System.debug('✗ ERREUR INATTENDUE');
+    System.debug('Type : ' + e.getTypeName());
+    System.debug('Message : ' + e.getMessage());
+    testResults.put('SAP OData Connect', 'ERREUR - ' + e.getTypeName());
+    failureCount++;
+}
+
+// ============================================================================
 // RÉSUMÉ FINAL
 // ============================================================================
 
@@ -307,6 +379,14 @@ String padding3b = ' '.repeat(Math.max(0, 26 - 'SAP_Product_Catalog_Service'.len
 String padding3c = ' '.repeat(Math.max(0, 8 - result3.length()));
 System.debug('│ Service des Produits' + padding3 + ' │ SAP_Product_Catalog_Service' + padding3b + '│ ' + icon3 + ' ' + result3 + padding3c + ' │');
 
+// Test 4
+String result4 = testResults.get('SAP OData Connect');
+String icon4 = result4.startsWith('SUCCÈS') ? '✓' : '✗';
+String padding4 = ' '.repeat(Math.max(0, 28 - 'OData / Salesforce Connect'.length()));
+String padding4b = ' '.repeat(Math.max(0, 26 - 'External Data Source SAP'.length()));
+String padding4c = ' '.repeat(Math.max(0, 8 - result4.length()));
+System.debug('│ OData / Salesforce Connect' + padding4 + ' │ External Data Source SAP' + padding4b + ' │ ' + icon4 + ' ' + result4 + padding4c + ' │');
+
 System.debug('└────────────────────────────────────────────────────────────────────┘');
 System.debug('\n');
 
@@ -320,11 +400,11 @@ System.debug('\n');
 // Verdict final
 if (successCount == totalTests) {
     System.debug('╔════════════════════════════════════════════════════════════════════════╗');
-    System.debug('║  ✓✓✓ TOUS LES NAMED CREDENTIALS SAP SONT OPÉRATIONNELS ✓✓✓           ║');
+    System.debug('║  ✓✓✓ TOUTES LES CONNEXIONS SAP SONT OPÉRATIONNELLES ✓✓✓              ║');
     System.debug('╚════════════════════════════════════════════════════════════════════════╝');
 } else if (successCount > 0) {
     System.debug('╔════════════════════════════════════════════════════════════════════════╗');
-    System.debug('║  ⚠ ATTENTION : CERTAINS NAMED CREDENTIALS ONT DES PROBLÈMES           ║');
+    System.debug('║  ⚠ ATTENTION : CERTAINES CONNEXIONS SAP ONT DES PROBLÈMES             ║');
     System.debug('╚════════════════════════════════════════════════════════════════════════╝');
     System.debug('\nActions recommandées :');
     if (testResults.get('SAP BTP HTTP') != 'SUCCÈS') {
@@ -336,14 +416,18 @@ if (successCount == totalTests) {
     if (testResults.get('SAP Product Catalog') != 'SUCCÈS') {
         System.debug('- SAP Product Catalog : Vérifier les paramètres de recherche');
     }
+    if (testResults.get('SAP OData Connect') != 'SUCCÈS') {
+        System.debug('- SAP OData Connect : Setup > External Data Sources > SAP > Validate and Sync');
+    }
 } else {
     System.debug('╔════════════════════════════════════════════════════════════════════════╗');
-    System.debug('║  ✗✗✗ AUCUN NAMED CREDENTIAL N\'EST OPÉRATIONNEL ✗✗✗                   ║');
+    System.debug('║  ✗✗✗ AUCUNE CONNEXION SAP N\'EST OPÉRATIONNELLE ✗✗✗                   ║');
     System.debug('╚════════════════════════════════════════════════════════════════════════╝');
     System.debug('\nActions recommandées :');
     System.debug('- Vérifier les Remote Site Settings');
     System.debug('- Vérifier les Named Credentials dans Setup');
     System.debug('- Vérifier les External Credentials associés');
+    System.debug('- Vérifier l\'External Data Source SAP (Salesforce Connect)');
     System.debug('- Consulter la documentation dans scripts/apex/README.md');
 }
 

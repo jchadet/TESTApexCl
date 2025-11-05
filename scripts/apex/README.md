@@ -10,7 +10,7 @@ Ce dossier contient des scripts Apex anonymous pour tester les 3 Named Credentia
 sf apex run -f scripts/apex/testAllSAPServices.apex -o origame5-dev
 ```
 
-Ce script teste automatiquement les 3 Named Credentials et affiche :
+Ce script teste automatiquement les 4 connexions SAP et affiche :
 - ✓ Un tableau récapitulatif avec le statut de chaque service
 - 📊 Des statistiques de réussite/échec
 - 🎯 Un verdict global et des recommandations ciblées
@@ -32,6 +32,7 @@ Ce script teste automatiquement les 3 Named Credentials et affiche :
 | **SAP_Endpoint_Service** | Service GreenAlp | `testSAPEndpointService.apex` | POST |
 | **SAP BTP http** | Service Activation | `testSAPBTPActivation.apex` | GET |
 | **SAP_Product_Catalog_Service** | Service des Produits | `testSAPProductCatalog.apex` | POST |
+| **External Data Source SAP** | OData / Salesforce Connect | (intégré dans consolidé) | SOQL |
 
 ---
 
@@ -144,6 +145,64 @@ sf apex run -f scripts/apex/testSAPProductCatalog.apex -o origame5-dev
 ### Résultat attendu
 - ✓ **SUCCÈS** : Retourne une liste de produits avec simulations de prix (HT, TTC, mensualités)
 - ✗ **ÉCHEC 400** : Vérifier les paramètres de la requête (valeurs invalides)
+
+---
+
+## 4️⃣ SAP External Data Source (OData / Salesforce Connect)
+
+### Description
+Connexion en temps réel aux données SAP via Salesforce Connect (protocole OData 2.0). Permet d'interroger les objets externes SAP directement en SOQL.
+
+### Configuration
+- **Type** : External Data Source (Salesforce Connect)
+- **Protocole** : OData 2.0
+- **Source de données** : SAP
+- **URL** : `https://geg-api.test.apimanagement.eu10.hana.ondemand.com/ZAPI_SAP_SF_V2_DF1?sap-language=fr`
+- **Authentification** : Mot de passe (utilisateur SFDC_CPI configuré dans External Data Source)
+- **Objet externe principal** : `SAPContract__x` (Contrats énergie)
+
+### Test intégré
+Ce service est testé **uniquement dans le script consolidé** `testAllSAPServices.apex` et `testAllSAPServices-mini.apex`.
+
+Le test effectue une requête SOQL simple sur l'objet externe :
+```apex
+List<SAPContract__x> contracts = [SELECT ExternalId FROM SAPContract__x LIMIT 1];
+```
+
+**Pas de paramètres à adapter** : Le test utilise les credentials configurés dans l'External Data Source automatiquement.
+
+### Résultat attendu
+- ✓ **SUCCÈS** : Récupère des enregistrements depuis SAP via OData
+- ✗ **ÉCHEC** : Problème de connexion OData ou d'authentification
+
+### Troubleshooting spécifique
+
+**Erreur : "External Object is currently not writable or readable"**
+- Solution : Setup > External Data Sources > SAP > cliquez sur "Validate and Sync"
+
+**Erreur : "401 Unauthorized"**
+- Solution : Vérifier les credentials dans External Data Source
+- Utilisateur : SFDC_CPI
+- Vérifier que le mot de passe est à jour
+
+**Erreur : "No such column"**
+- Solution : L'objet externe n'est pas synchronisé
+- Setup > External Objects > SAPContract__x > vérifier les champs
+
+### Configuration de l'External Data Source
+
+Pour vérifier ou configurer l'External Data Source :
+
+1. Allez dans **Setup** > **External Data Sources**
+2. Cliquez sur **SAP**
+3. Vérifiez :
+   - URL : `https://geg-api.test.apimanagement.eu10.hana.ondemand.com/ZAPI_SAP_SF_V2_DF1?sap-language=fr`
+   - Type d'identité : Principal nommé
+   - Protocole : Authentification par mot de passe
+   - Nom d'utilisateur : SFDC_CPI
+4. Cliquez sur **Validate and Sync** pour tester la connexion
+
+**Note :** Cette connexion est essentielle pour accéder aux données SAP en temps réel dans Salesforce via les objets externes.
 
 ---
 
